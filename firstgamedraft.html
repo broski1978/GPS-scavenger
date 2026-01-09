@@ -1,0 +1,62 @@
+<script>
+const map = L.map('map').setView([-40.35298, 175.63394], 19);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const clues = [
+  { lat: -40.353138, lng: 175.634131, clue: "Boss charcoal would never go to the exchange" },
+  { lat: -40.352981, lng: 175.63394, clue: "Captain Slate kept drinking out of her water bottle" },
+  { lat: -40.347315, lng: 175.632894, clue: "Aristocrates would never be around exposed wires" },
+  { lat: -40.34682,  lng: 175.633047, clue: "Ancient technology was found near the railway" },
+  { lat: -40.346505, lng: 175.633879, clue: "The body was found near the baggage claim." }
+];
+
+const hiddenMarkers = clues.map(c => {
+  const marker = L.marker([c.lat, c.lng]).bindPopup(c.clue);
+  marker._revealed = false;
+  return marker;
+});
+
+function getDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+navigator.geolocation.watchPosition(pos => {
+  const userLat = pos.coords.latitude;
+  const userLng = pos.coords.longitude;
+
+  map.setView([userLat, userLng]);
+
+  L.circle([userLat, userLng], {
+    radius: 3,
+    color: 'blue',
+    fillColor: 'blue',
+    fillOpacity: 0.5
+  }).addTo(map);
+
+  hiddenMarkers.forEach(marker => {
+    if (!marker._revealed) {
+      const dist = getDistance(userLat, userLng, marker.getLatLng().lat, marker.getLatLng().lng);
+      console.log(`Distance to clue: ${dist.toFixed(2)} meters`);
+      if (dist <= 5) {
+        marker.addTo(map).openPopup();
+        marker._revealed = true;
+      }
+    }
+  });
+
+}, err => {
+  alert("Geolocation error: " + err.message);
+}, {
+  enableHighAccuracy: true,
+  maximumAge: 1000,
+  timeout: 5000
+});
+</script>
